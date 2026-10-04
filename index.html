@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zorryfy</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cellipse cx='32' cy='38' rx='26' ry='20' fill='%23ff8c00'/%3E%3Crect x='29' y='10' width='6' height='12' rx='2' fill='%235a2d8c'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/halloween.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+<div id="decor" aria-hidden="true"></div>
+<div class="drop-veil" aria-hidden="true"></div>
+
+<!-- ================================================================ APP -->
+<div class="app hidden" id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="38" rx="26" ry="20" fill="#ff8c00"/><ellipse cx="32" cy="38" rx="11" ry="20" fill="#e67600"/><rect x="29" y="10" width="6" height="12" rx="2" fill="#5a2d8c"/></svg>
+      <div>Zorry<span>fy</span></div>
+    </div>
+    <nav>
+      <div class="side-title">Biblioteca</div>
+      <button class="side-item active" type="button" id="nav-queue">Cola de reproducción</button>
+      <button class="side-item" type="button" id="nav-upload">Subir canciones</button>
+      <button class="side-item" type="button" id="nav-new-playlist">Crear playlist</button>
+    </nav>
+    <nav class="side-playlists" aria-labelledby="playlists-title">
+      <div class="side-title" id="playlists-title">Playlists</div>
+      <ul class="playlist-nav" id="playlist-nav"></ul>
+      <p class="side-empty" id="playlist-empty">Aún no tienes playlists.</p>
+    </nav>
+    <nav>
+      <div class="side-title">Seguridad</div>
+      <button class="side-item" type="button" id="nav-qr">Vincular Google Authenticator</button>
+    </nav>
+    <div class="side-stats">
+      <div><span id="storage-used">0 MB</span> de 200 MB usados</div>
+      <div class="meter"><div id="storage-meter"></div></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="header">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="search" placeholder="Buscar artista o canción…" autocomplete="off" aria-label="Buscar artista o canción" disabled>
+        <div class="results hidden" id="results" role="listbox"></div>
+      </div>
+      <div class="user">
+        <span class="user-name" id="user-name"></span>
+        <button class="btn ghost" type="button" id="logout">Salir</button>
+      </div>
+    </header>
+
+    <div class="email-banner hidden" id="email-banner" role="status">
+      <span id="email-banner-text"></span>
+      <div class="email-banner-actions">
+        <button class="btn primary" type="button" id="email-push">Confirmar con notificación</button>
+        <button class="btn ghost" type="button" id="email-change">Cambiar email</button>
+        <button class="btn ghost" type="button" id="email-dismiss" aria-label="Ocultar aviso">Ahora no</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <section class="panel" id="queue-panel">
+        <h2>Cola de reproducción <small id="queue-count"></small></h2>
+        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Subir canciones">
+          <svg class="icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M32 42V14M20 26l12-12 12 12"/><path d="M12 40v8a4 4 0 0 0 4 4h32a4 4 0 0 0 4-4v-8"/></svg>
+          <h3>Sube tus canciones aquí</h3>
+          <p>Arrastra archivos .mp3 desde el Explorador de Windows o haz clic para elegirlos · máx. 25 MB c/u</p>
+        </div>
+        <ul class="queue" id="queue"></ul>
+        <div class="uploading hidden" id="uploading">
+          <div class="hint" id="upload-label">Subiendo…</div>
+          <div class="meter"><div id="upload-meter"></div></div>
+        </div>
+        <div class="actions hidden" id="queue-actions" style="flex-direction: row; justify-content: flex-end;">
+          <button class="btn danger" type="button" id="clear-queue">Limpiar cola</button>
+        </div>
+        <input type="file" id="file-input" accept=".mp3,audio/mpeg" multiple hidden>
+      </section>
+
+      <section class="panel hidden" id="playlist-panel" aria-labelledby="pl-name">
+        <div class="pl-head">
+          <button class="pl-cover-btn" type="button" id="pl-cover-btn" aria-label="Cambiar portada"><span id="pl-cover"></span><span class="pl-cover-hint">Cambiar portada</span></button>
+          <div class="pl-info">
+            <div class="side-title">Playlist</div>
+            <h2 class="pl-name" id="pl-name"></h2>
+            <div class="hint" id="pl-meta"></div>
+            <div class="pl-actions">
+              <button class="btn primary" type="button" id="pl-play">Reproducir</button>
+              <button class="btn" type="button" id="pl-append">Añadir a la cola</button>
+              <button class="btn ghost" type="button" id="pl-rename">Renombrar</button>
+              <button class="btn ghost hidden" type="button" id="pl-cover-remove">Quitar portada</button>
+              <button class="btn danger" type="button" id="pl-delete">Eliminar</button>
+            </div>
+          </div>
+        </div>
+        <ul class="queue" id="pl-tracks"></ul>
+        <p class="side-empty" id="pl-empty">Añade canciones desde la cola con el botón <b>+</b> de cada pista.</p>
+        <input type="file" id="cover-input" accept="image/jpeg,image/png,image/webp" hidden>
+      </section>
+
+      <div class="right">
+        <section class="panel player disabled" id="player" aria-label="Reproductor">
+          <div class="cover">
+            <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#0d0614" stroke="#5a2d8c" stroke-width="2"/><circle cx="32" cy="32" r="20" fill="none" stroke="#2f1650" stroke-width="2"/><circle cx="32" cy="32" r="9" fill="#ff8c00"/><circle cx="32" cy="32" r="2.5" fill="#0d0614"/></svg>
+          </div>
+          <div class="now-title" id="now-title">Sin pistas</div>
+          <div class="now-artist" id="now-artist">Sube canciones para empezar</div>
+          <div class="progress" id="progress" role="slider" aria-label="Posición" tabindex="0"><div id="progress-fill"></div></div>
+          <div class="times"><span id="time-cur">0:00</span><span id="time-total">0:00</span></div>
+          <div class="controls">
+            <button class="round" type="button" id="prev" aria-label="Anterior" disabled><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+            <button class="round play" type="button" id="play" aria-label="Reproducir" disabled><svg viewBox="0 0 24 24" fill="currentColor" id="play-icon"><path d="M7 4v16l13-8z"/></svg></button>
+            <button class="round" type="button" id="next" aria-label="Siguiente" disabled><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+          </div>
+          <label class="volume"><span aria-hidden="true">🔊</span><input type="range" id="volume" min="0" max="1" step="0.01" value="0.8" aria-label="Volumen"></label>
+          <audio id="audio" preload="auto"></audio>
+        </section>
+
+        <section class="panel" id="pointers-panel">
+          <h2>Punteros <small>array circular</small></h2>
+          <div class="pointer"><label>← Anterior</label><div id="ptr-prev">—</div></div>
+          <div class="pointer now"><label>● Actual</label><div id="ptr-cur">—</div></div>
+          <div class="pointer"><label>Siguiente →</label><div id="ptr-next">—</div></div>
+        </section>
+
+        <section class="panel">
+          <h2>Estado del buffer</h2>
+          <div class="buffer-stats">
+            <div>Head: <b id="buf-head">0</b></div><div>Tail: <b id="buf-tail">0</b></div>
+            <div>Size: <b id="buf-size">0</b></div><div>Capacity: <b id="buf-cap">8</b></div>
+          </div>
+          <div class="slots" id="slots"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ================================================================ MODALES -->
+<!-- Login -->
+<div class="modal hidden" id="m-login" role="dialog" aria-modal="true" aria-labelledby="m-login-title">
+  <form class="modal-card" id="form-login" novalidate>
+    <h2 id="m-login-title">Bienvenido a Zorry<span style="color: var(--orange)">fy</span></h2>
+    <p class="sub">Inicia sesión para escuchar tu música.</p>
+    <div class="demo-hint hidden" data-demo>Cuenta de prueba: <b>demo</b> / <b>demo123</b></div>
+    <div class="field"><label for="login-user">Nombre de usuario</label><input id="login-user" autocomplete="username" required></div>
+    <div class="field"><label for="login-pass">Contraseña</label><input id="login-pass" type="password" autocomplete="current-password" required></div>
+    <div class="error" id="login-error" role="alert"></div>
+    <p class="hint">La sesión dura 24 horas y se cierra al cerrar la pestaña.</p>
+    <div class="actions">
+      <button class="btn primary block" type="submit">Iniciar sesión</button>
+      <button class="btn block" type="button" id="to-register">Crear cuenta</button>
+    </div>
+  </form>
+</div>
+
+<!-- 2FA del login -->
+<div class="modal hidden" id="m-mfa" role="dialog" aria-modal="true" aria-labelledby="m-mfa-title">
+  <form class="modal-card" id="form-mfa" novalidate>
+    <h2 id="m-mfa-title">Verificación en dos pasos</h2>
+    <p class="sub" id="mfa-sub">Abre <b>Google Authenticator</b> y escribe el código de 6 dígitos de Zorryfy.</p>
+    <div class="demo-hint hidden" data-demo>Modo demo: usa el código <b>123456</b></div>
+    <div class="field" id="mfa-code-field"><label for="mfa-code">Código</label><input id="mfa-code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••"></div>
+    <div class="field hidden" id="mfa-recovery-field"><label for="mfa-recovery">Código de respaldo</label><input id="mfa-recovery" maxlength="20" placeholder="xxxxxxxx-xxxxxxxx"></div>
+    <div class="error" id="mfa-error" role="alert"></div>
+    <div class="actions">
+      <button class="btn primary block" type="submit">Verificar</button>
+      <button class="link" type="button" id="mfa-toggle">Usar un código de respaldo</button>
+      <button class="link" type="button" data-back-login>Volver</button>
+    </div>
+  </form>
+</div>
+
+<!-- Términos y Condiciones -->
+<div class="modal hidden" id="m-terms" role="dialog" aria-modal="true" aria-labelledby="m-terms-title">
+  <div class="modal-card wide">
+    <h2 id="m-terms-title">Términos y Condiciones</h2>
+    <p class="sub">Versión <span id="terms-version"></span> · Léelos y acéptalos para continuar.</p>
+    <div id="terms-sections"></div>
+    <label class="capsule">
+      <input type="checkbox" id="terms-check">
+      <span class="knob" aria-hidden="true"></span>
+      <span>He leído y acepto los Términos y Condiciones</span>
+    </label>
+    <div class="error" id="terms-error" role="alert"></div>
+    <div class="actions">
+      <button class="btn primary block" type="button" id="terms-accept" disabled>Aceptar y continuar</button>
+      <button class="btn block" type="button" id="terms-reject">Rechazar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Registro -->
+<div class="modal hidden" id="m-register" role="dialog" aria-modal="true" aria-labelledby="m-register-title">
+  <form class="modal-card" id="form-register" novalidate>
+    <h2 id="m-register-title">Crear cuenta</h2>
+    <p class="sub">Tu cuenta quedará protegida con doble verificación.</p>
+    <div class="field"><label for="reg-user">Nombre de usuario</label><input id="reg-user" autocomplete="username" maxlength="50" placeholder="El que quieras, p. ej. María José" required></div>
+    <div class="field"><label for="reg-email">Email</label><input id="reg-email" type="email" autocomplete="email" maxlength="254" required>
+      <div class="hint">No lo verificamos al registrarte y puedes usarlo en varias cuentas.</div></div>
+    <div class="field"><label for="reg-pass">Contraseña</label><input id="reg-pass" type="password" autocomplete="new-password" maxlength="128" required>
+      <div class="hint">Mínimo 8 caracteres, con al menos una letra y un número.</div></div>
+    <div class="error" id="register-error" role="alert"></div>
+    <div class="actions">
+      <button class="btn primary block" type="submit">Continuar</button>
+      <button class="btn block" type="button" data-back-login>Ya tengo cuenta</button>
+    </div>
+  </form>
+</div>
+
+<!-- Configuración de Google Authenticator (registro) -->
+<div class="modal hidden" id="m-setup" role="dialog" aria-modal="true" aria-labelledby="m-setup-title">
+  <form class="modal-card" id="form-setup" novalidate>
+    <h2 id="m-setup-title">Vincula Google Authenticator</h2>
+    <ol class="steps">
+      <li>Abre <b>Google Authenticator</b> en tu teléfono.</li>
+      <li>Toca <b>+</b> → <b>Escanear un código QR</b>.</li>
+      <li>Escanea este código y escribe los 6 dígitos que aparecen.</li>
+    </ol>
+    <div class="qr"><img id="setup-qr" alt="Código QR para Google Authenticator"></div>
+    <div class="hint" style="text-align: center;">¿No puedes escanear? Elige <b>Ingresar clave de configuración</b> y escribe:</div>
+    <div class="secret" id="setup-secret"></div>
+    <div class="demo-hint hidden" data-demo>Modo demo: también puedes usar <b>123456</b></div>
+    <div class="field"><label for="setup-code">Código de 6 dígitos</label><input id="setup-code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••"></div>
+    <div class="error" id="setup-error" role="alert"></div>
+    <div class="actions"><button class="btn primary block" type="submit">Activar</button></div>
+  </form>
+</div>
+
+<!-- Códigos de respaldo -->
+<div class="modal hidden" id="m-recovery" role="dialog" aria-modal="true" aria-labelledby="m-recovery-title">
+  <div class="modal-card">
+    <h2 id="m-recovery-title">Guarda tus códigos de respaldo</h2>
+    <p class="sub">Cada uno sirve una sola vez si pierdes el teléfono. No se volverán a mostrar.</p>
+    <div class="codes" id="recovery-codes"></div>
+    <div class="actions">
+      <button class="btn block" type="button" id="recovery-copy">Copiar códigos</button>
+      <button class="btn primary block" type="button" id="recovery-done">Ya los guardé · Iniciar sesión</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ver QR con sesión iniciada -->
+<div class="modal hidden" id="m-qr" role="dialog" aria-modal="true" aria-labelledby="m-qr-title">
+  <form class="modal-card" id="form-qr" novalidate>
+    <h2 id="m-qr-title">Vincular Google Authenticator</h2>
+    <div id="qr-ask">
+      <p class="sub">Por seguridad, confirma tu contraseña para ver el código QR.</p>
+      <div class="field"><label for="qr-pass">Contraseña</label><input id="qr-pass" type="password" autocomplete="current-password"></div>
+      <div class="error" id="qr-error" role="alert"></div>
+      <div class="actions">
+        <button class="btn primary block" type="submit">Mostrar QR</button>
+        <button class="btn block" type="button" data-close>Cancelar</button>
+      </div>
+    </div>
+    <div id="qr-show" class="hidden">
+      <ol class="steps">
+        <li>Abre <b>Google Authenticator</b> → <b>+</b> → <b>Escanear un código QR</b>.</li>
+        <li>Desde ahora, usa los códigos de la app para iniciar sesión.</li>
+      </ol>
+      <div class="qr"><img id="qr-img" alt="Código QR para Google Authenticator"></div>
+      <div class="secret" id="qr-secret"></div>
+      <div class="actions"><button class="btn primary block" type="button" data-close>Listo</button></div>
+    </div>
+  </form>
+</div>
+
+<div class="popover hidden" id="pl-popover" role="menu" aria-label="Añadir a playlist"></div>
+
+<!-- Crear playlist -->
+<div class="modal hidden" id="m-playlist" role="dialog" aria-modal="true" aria-labelledby="m-playlist-title">
+  <form class="modal-card" id="form-playlist" novalidate>
+    <h2 id="m-playlist-title">Crear playlist</h2>
+    <p class="sub">Ponle nombre y, si quieres, una portada.</p>
+    <div class="cover-picker" id="cover-picker" role="button" tabindex="0" aria-label="Elegir portada">
+      <span id="new-cover-thumb"></span>
+      <div><b>Portada</b><div class="hint">Arrastra una imagen o haz clic · JPG, PNG o WebP · máx. 2 MB</div></div>
+    </div>
+    <input type="file" id="new-cover-input" accept="image/jpeg,image/png,image/webp" hidden>
+    <div class="field"><label for="pl-new-name">Nombre</label><input id="pl-new-name" maxlength="80" placeholder="Mis favoritas"></div>
+    <label class="check-row"><input type="checkbox" id="pl-from-queue"> Copiar las pistas de la cola actual</label>
+    <div class="error" id="playlist-error" role="alert"></div>
+    <div class="actions">
+      <button class="btn primary block" type="submit">Crear playlist</button>
+      <button class="btn block" type="button" data-close>Cancelar</button>
+    </div>
+  </form>
+</div>
+
+<!-- Email: cambiar o confirmar desde la app -->
+<div class="modal hidden" id="m-email" role="dialog" aria-modal="true" aria-labelledby="m-email-title">
+  <form class="modal-card" id="form-email" novalidate>
+    <h2 id="m-email-title">Tu email</h2>
+    <div id="email-ask" class="hidden">
+      <p class="sub">¿<b id="email-ask-value"></b> es tu dirección de correo?</p>
+      <div class="actions">
+        <button class="btn primary block" type="button" id="email-yes">Sí, es mío</button>
+        <button class="btn block" type="button" id="email-no">No es mi email</button>
+      </div>
+    </div>
+    <div id="email-edit">
+      <p class="sub">Escribe el email correcto. Después te pediremos confirmarlo con una notificación.</p>
+      <div class="field"><label for="email-new">Email</label><input id="email-new" type="email" autocomplete="email" maxlength="254"></div>
+      <div class="error" id="email-error" role="alert"></div>
+      <div class="actions">
+        <button class="btn primary block" type="submit">Guardar</button>
+        <button class="btn block" type="button" data-close>Cancelar</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div class="toast-box" id="toasts" aria-live="polite"></div>
+</body>
+</html>
